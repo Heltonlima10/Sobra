@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src data:; script-src 'unsafe-inline'; connect-src 'none';">
+<title>Cashflow Sankey Chart</title>
+<style>
+  /* Luminous / Miro Widget Design System Font Loading */
+  @font-face {
+    font-family: 'Google Sans';
+    src: url('https://fonts.gstatic.com/s/googlesans/v58/4UaRrENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iq2vgCI.woff2') format('woff2');
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght,ROND@100..900,0..100&display=swap');
+
+  /* Design System Tokens */
+  :root {
+    --ff-sans: 'Google Sans Flex', 'Google Sans', 'Open Sans', sans-serif;
+    --ff-mono: 'SF Mono', 'Menlo', monospace;
+    --fw-normal: 400;
+    --fw-medium: 500;
+    --fw-semibold: 440;
+
+    --primary: #3186ff;
+    --on-primary: #ffffff;
+    --primary-container: #dcf1ff;
+    --on-primary-container: #192967;
+    --secondary: #969dff;
+    --on-secondary: #ffffff;
+    --secondary-container: #dce4ff;
+    --tertiary: #0ebc5f;
+    --on-tertiary: #ffffff;
+    --tertiary-container: #daf9d4;
+
+    --surface: #FAF9F9;
+    --surface-bright: #ffffff;
+    --surface-dim: #f2f0f0;
+    --surface-container: #f2f0f0;
+    --surface-container-high: #e6e6e6;
+    --surface-container-highest: #e0e0e0;
+    --surface-container-low: #f2f0f0;
+    --surface-container-lowest: #ffffff;
+    --on-surface-default: #1f1f1f;
+    --on-surface-de-emphasis: #444746;
+    --on-surface-primary: #3186ff;
+
+    --outline: #727676;
+    --outline-variant: #c4c7c5;
+    --stroke-default: #e3e3e3;
+    --stroke-emphasis: #808080;
+    --positive: #008052;
+    --negative: #de2d29;
+    --warning: #ffdb0f;
+
+    --chart-1: #3186ff;
+    --chart-2: #60d673;
+    --chart-3: #ffdb0f;
+    --chart-4: #ff8585;
+    --chart-5: #969dff;
+    --chart-6: #ff88d3;
+
+    --black: #000000;
+    --white: #ffffff;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface: #0f0f0f;
+      --surface-bright: #1f1f1f;
+      --surface-dim: #141414;
+      --surface-container: #141414;
+      --surface-container-high: #1c1c1c;
+      --surface-container-highest: #171717;
+      --surface-container-low: #0f0f0f;
+      --surface-container-lowest: #0f0f0f;
+      --on-surface-default: #ffffff;
+      --on-surface-de-emphasis: #ababab;
+      --on-surface-primary: #9dd2ff;
+      --primary: #9dd2ff;
+      --on-primary: #192967;
+      --primary-container: #1f3b9b;
+      --on-primary-container: #dce4ff;
+      --outline: #9a9b9c;
+      --outline-variant: #4a5050;
+      --stroke-default: #2d2f38;
+      --stroke-emphasis: #808080;
+      --positive: #0ebc5f;
+      --negative: #ff4c45;
+      --warning: #ffdb0f;
+      --chart-1: #9dd2ff;
+      --chart-2: #60d673;
+      --chart-3: #ffdb0f;
+      --chart-4: #ff9999;
+      --chart-5: #969dff;
+      --chart-6: #ff88d3;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overflow: hidden; }
+
+  body {
+    font-family: var(--ff-sans);
+    background: var(--surface);
+    color: var(--on-surface-default);
+    padding: 0; margin: 0;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .widget {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 24px 20px 32px;
+  }
+  @media (min-width: 768px) {
+    .widget { max-width: 708px; padding: 32px 28px 40px; }
+  }
+
+  /* Title */
+  .title-section { margin-bottom: 8px; }
+  .widget-title {
+    font-size: 18px; font-weight: var(--fw-medium);
+    letter-spacing: -0.2px;
+  }
+  .widget-subtitle {
+    font-size: 13px; color: var(--on-surface-de-emphasis); margin-top: 2px;
+  }
+
+  /* Chart */
+  .chart-section {
+    margin: 0;
+    width: 100%;
+    overflow-x: hidden;
+  }
+  .chart-section svg {
+    display: block; width: 100%; height: auto;
+  }
+
+  /* Summary Section (3-column inline header matching uploaded design) */
+  .summary-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+  }
+  .summary-item {
+    text-align: center;
+    flex: 1;
+    max-width: 200px;
+  }
+  .summary-divider {
+    width: 1px;
+    height: 36px;
+    background: var(--stroke-default);
+    flex-shrink: 0;
+  }
+  .summary-val {
+    font-family: 'Google Sans Flex', var(--ff-sans);
+    font-weight: var(--fw-medium);
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s;
+  }
+  .side-val {
+    font-size: 20px;
+    line-height: 26px;
+  }
+  .center-val {
+    font-size: 28px;
+    line-height: 34px;
+  }
+  .center-val.positive, .side-val.positive { color: var(--positive); }
+  .center-val.negative, .side-val.negative { color: var(--negative); }
+  .summary-sub {
+    font-size: 13px;
+    color: var(--on-surface-de-emphasis);
+    margin-top: 2px;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    background: var(--surface-bright);
+    border: 1px solid var(--outline-variant);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-family: var(--ff-sans);
+    font-size: 13px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 100;
+    white-space: nowrap;
+    color: var(--on-surface-default);
+  }
+  .tooltip-value { font-weight: var(--fw-medium); margin-left: 8px; font-variant-numeric: tabular-nums; }
+
+  /* SVG Interactivity */
+  rect[data-label] { transition: fill-opacity 0.2s; }
+  rect[data-label]:hover { fill-opacity: 0.8; cursor: default; }
+  path[data-label] { transition: opacity 0.2s; }
+  path[data-label]:hover { opacity: 0.6; cursor: default; }
+
+  /* Slider Sections */
+  .sliders-section { margin-top: 8px; }
+  .breakdown-title {
+    font-size: 18px; font-weight: var(--fw-medium); margin-bottom: 6px;
+  }
+  .color-dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    margin-right: 6px; vertical-align: baseline;
+  }
+  .category { border-bottom: none; }
+  .category-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; cursor: pointer; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .category-title { font-size: 15px; font-weight: var(--fw-medium); }
+  .category-chevron {
+    width: 20px; height: 20px; transition: transform 0.2s ease;
+    color: var(--on-surface-de-emphasis);
+  }
+  .category.open .category-chevron { transform: rotate(180deg); }
+  .category-body {
+    max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+  }
+  .category.open .category-body { max-height: 600px; }
+  .slider-grid {
+    display: grid; grid-template-columns: 1fr; gap: 16px 24px;
+  }
+  @media (min-width: 540px) {
+    .slider-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  }
+  .slider-row { margin-bottom: 20px; }
+  .slider-grid .slider-row { margin-bottom: 0; }
+  .slider-label {
+    font-size: 13px; color: var(--on-surface-de-emphasis); margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .slider-control { display: flex; align-items: center; gap: 12px; }
+
+  /* Luminous Slider Styling */
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    flex: 1; height: 32px; margin: 0; background: transparent;
+    border-radius: 999px; outline: none; cursor: pointer;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 3px;
+    background: linear-gradient(
+      to right,
+      var(--on-surface-default) 0%, var(--on-surface-default) var(--progress, 50%),
+      rgba(128,128,128,0.3) var(--progress, 50%), rgba(128,128,128,0.3) 100%
+    );
+    border-radius: 999px; border: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 12px; height: 24px; border-radius: 999px;
+    background: var(--surface); border: 3px solid var(--on-surface-default);
+    box-sizing: border-box; margin-top: -10.5px; cursor: pointer; box-shadow: none;
+  }
+  input[type="range"]::-moz-range-track {
+    height: 3px;
+    background: linear-gradient(
+      to right,
+      var(--on-surface-default) 0%, var(--on-surface-default) var(--progress, 50%),
+      rgba(128,128,128,0.3) var(--progress, 50%), rgba(128,128,128,0.3) 100%
+    );
+    border-radius: 999px; border: none;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 12px; height: 24px; border-radius: 999px;
+    background: var(--surface); border: 3px solid var(--on-surface-default);
+    box-sizing: border-box; cursor: pointer; box-shadow: none;
+  }
+  @media (max-width: 600px) {
+    input[type="range"] { height: 36px; }
+    input[type="range"]::-webkit-slider-thumb { width: 14px; height: 26px; margin-top: -11.5px; }
+    input[type="range"]::-moz-range-thumb { width: 14px; height: 26px; }
+  }
+  .slider-value {
+    font-size: 14px; font-weight: var(--fw-medium);
+    font-family: var(--ff-sans); min-width: 64px; width: 80px; flex-shrink: 0; text-align: right;
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+    background: var(--surface-container); color: var(--on-surface-default);
+    padding: 6px 10px; border-radius: 8px;
+    border: 1px solid var(--stroke-default, rgba(128,128,128,0.2));
+    outline: none; box-sizing: border-box;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+  .slider-value:focus {
+    border-color: var(--primary, #1a73e8);
+    background: var(--surface);
+  }
+
+  /* Toggle Section */
+  .toggle-section { margin-top: 28px; }
+  .toggle-title {
+    font-size: 15px; font-weight: var(--fw-medium); margin-bottom: 12px;
+  }
+  /* Footer */
+  .footer-note {
+    margin-top: 24px; font-size: 12px;
+    color: var(--on-surface-de-emphasis); line-height: 1.6;
+  }
+
+  /* SVG text styling */
+  .node-label {
+    font-family: var(--ff-sans);
+    fill: var(--on-surface-default);
+  }
+  .node-sublabel {
+    font-family: var(--ff-sans);
+    fill: var(--on-surface-de-emphasis);
+  }
+
+  @media (max-width: 480px) {
+    .widget { padding: 16px 14px 24px; }
+    .summary-section { gap: 12px; }
+    .side-val { font-size: 17px; }
+    .center-val { font-size: 23px; }
+    .summary-sub { font-size: 11px; }
+    .breakdown-title { font-size: 16px; }
+    .widget-title { font-size: 16px; }
+    .widget-subtitle { font-size: 12px; }
+    .slider-label { white-space: normal; }
+    .slider-value { width: 72px; padding: 4px 8px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="widget" id="sankeyWidget">
+
+  <!-- Summary (3-column inline header) -->
+  <div class="summary-section">
+    <div class="summary-item side-item">
+      <div class="summary-val side-val" id="expenseValue">$4,200</div>
+      <div class="summary-sub" id="expenseLabel">Monthly expenses</div>
+    </div>
+    <div class="summary-divider"></div>
+    <div class="summary-item center-item">
+      <div class="summary-val center-val positive" id="heroValue">$1,600</div>
+      <div class="summary-sub" id="heroSubtitle">Monthly surplus</div>
+    </div>
+    <div class="summary-divider"></div>
+    <div class="summary-item side-item">
+      <div class="summary-val side-val positive" id="savingsRateValue">28%</div>
+      <div class="summary-sub" id="savingsRateLabel">Savings rate</div>
+    </div>
+  </div>
+
+  <div class="chart-section">
+    <svg id="sankeyChart" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <div class="sliders-section">
+    <div class="breakdown-title" id="slidersTitle">Adjust your cashflow</div>
+    <div id="slidersContainer"></div>
+  </div>
+
+  <div class="footer-note" id="footerNote">
+    Drag sliders to see how changes affect your savings.
+  </div>
+</div>
+
+<div class="tooltip" id="chartTooltip"></div>
+
+<script id="injected-widget-data" type="application/json">{
+  "labels": {
+    "currencySymbol": "R$",
+    "title": "Visão Geral do Fluxo de Caixa",
+    "subtitle": "Modelo de dashboard para o seu aplicativo",
+    "heroSubtitle": "Reserva Mensal (Sobras)"
+  },
+  "nodes": [
+    { "key": "renda_fixa", "label": "Renda Principal", "value": 5000, "type": "income", "parent": "total_income", "colorVar": "--chart-1", "slider": { "min": 0, "max": 15000, "step": 100 } },
+    { "key": "vendas", "label": "Vendas / Renda Extra", "value": 2500, "type": "income", "parent": "total_income", "colorVar": "--chart-2", "slider": { "min": 0, "max": 10000, "step": 100 } },
+    { "key": "total_income", "label": "Receitas", "type": "income", "parent": null, "colorVar": "--chart-1" },
+    { "key": "spending", "label": "Despesas", "type": "expense", "parent": null, "colorVar": "--chart-4" },
+    { "key": "moradia", "label": "Moradia & Contas", "value": 2200, "type": "expense", "parent": "spending", "colorVar": "--chart-4", "slider": { "min": 0, "max": 5000, "step": 50 } },
+    { "key": "alimentacao", "label": "Alimentação", "value": 1500, "type": "expense", "parent": "spending", "colorVar": "--chart-3", "slider": { "min": 0, "max": 3000, "step": 50 } },
+    { "key": "transporte", "label": "Transporte / Logística", "value": 800, "type": "expense", "parent": "spending", "colorVar": "--chart-5", "slider": { "min": 0, "max": 2000, "step": 50 } },
+    { "key": "lazer", "label": "Lazer & Saídas", "value": 1100, "type": "expense", "parent": "spending", "colorVar": "--chart-6", "slider": { "min": 0, "max": 3000, "step": 50 } },
+    { "key": "imprevistos", "label": "Imprevistos", "value": 400, "type": "expense", "parent": "spending", "colorVar": "--chart-2", "slider": { "min": 0, "max": 2000, "step": 50 } }
+  ]
+}</script>
+<script>
+  // ===================================================================
+  // DEFAULT DATA (local preview fallback)
+  // ===================================================================
+  const defaultNodes = [
+    { key: 'salary', label: 'Primary Employment Salary & Bonuses', value: 5000, type: 'income', parent: 'total_income',
+      colorVar: '--chart-1', slider: { min: 0, max: 15000, step: 100 } },
+    { key: 'side_gig', label: 'Freelance Consulting & Side Projects Income (Extremely Long)', value: 800, type: 'income', parent: 'total_income',
+      colorVar: '--chart-2', slider: { min: 0, max: 5000, step: 50 } },
+
+    { key: 'total_income', label: 'Total income', type: 'income', parent: null,
+      colorVar: '--chart-1' },
+
+    { key: 'spending', label: 'Spending', type: 'expense', parent: null,
+      colorVar: '--chart-4' },
+
+    { key: 'rent', label: 'Mortgage & HOA Housing Expenses', value: 2000, type: 'expense', parent: 'spending',
+      colorVar: '--chart-4', slider: { min: 0, max: 5000, step: 50 } },
+    { key: 'food', label: 'Food & Groceries', value: 800, type: 'expense', parent: 'spending',
+      colorVar: '--chart-3', slider: { min: 0, max: 2000, step: 25 } },
+    { key: 'transport', label: 'Commute & Auto Insurance', value: 400, type: 'expense', parent: 'spending',
+      colorVar: '--chart-6', slider: { min: 0, max: 1500, step: 25 } },
+    { key: 'utilities', label: 'Utilities & Internet', value: 200, type: 'expense', parent: 'spending',
+      colorVar: '--chart-5', slider: { min: 0, max: 500, step: 10 } },
+    { key: 'other_exp', label: 'Miscellaneous Discretionary Spending & Subscriptions (Extra Long)', value: 800, type: 'expense', parent: 'spending',
+      colorVar: '--outline', slider: { min: 0, max: 2000, step: 25 } },
+  ];
+
+  const defaultLabels = {
+    title: 'Monthly Cashflow',
+    subtitle: 'Where your money goes',
+    heroSubtitle: 'Monthly savings',
+    incomeLabel: 'Total income',
+    expenseLabel: 'Total expenses',
+    slidersTitle: 'Adjust your cashflow',
+    footerNote: 'Drag sliders to see how changes affect your savings.',
+    currencySymbol: '',
+    currencyLocale: 'en-US',
+  };
+
+  // ===================================================================
+  // DATA INJECTION & DEFENSIVE SCHEMA NORMALIZER (Tier 1 Anti-Hallucination)
+  // ===================================================================
+  function loadInjectedData() {
+    const el = document.getElementById('injected-widget-data');
+    if (!el) return null;
+    const raw = (el.textContent || '').trim();
+    const sentinel = '/*' + 'INJECT_USER_DATA' + '*/';
+    if (!raw || raw === sentinel) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      try {
+        return JSON.parse(raw.replace(/\\'/g, "'"));
+      } catch (e2) {
+        return null;
+      }
+    }
+  }
+  let injectedData = loadInjectedData();
+
+  function normalizeSankeyData(data) {
+    if (!data || typeof data !== 'object') {
+      return {
+        nodes: defaultNodes,
+        labels: defaultLabels,
+        heroMode: 'savings'
+      };
+    }
+    const rawNodes = Array.isArray(data.nodes) ? data.nodes : (Array.isArray(data.categories) ? data.categories : defaultNodes);
+    
+    // Build map of keys for tolerant parent matching
+    const keyMap = {};
+    rawNodes.forEach(nd => {
+      if (nd.key) {
+        keyMap[nd.key] = nd.key;
+        keyMap[nd.key.replace(/\s+/g, '')] = nd.key;
+        keyMap[nd.key.toLowerCase().replace(/\s+/g, '')] = nd.key;
+      }
+    });
+
+    const nodes = rawNodes.map((nd, idx) => {
+      const rawKey = nd.key || `node_${idx}`;
+      const cleanKey = rawKey.trim();
+      const label = nd.label || nd.name || cleanKey;
+      
+      // Clean parent reference
+      let parent = nd.parent ? nd.parent.trim() : null;
+      if (parent && !keyMap[parent]) {
+        const fuzzy = parent.toLowerCase().replace(/\s+/g, '');
+        if (keyMap[fuzzy]) parent = keyMap[fuzzy];
+      }
+
+      // Clean type (tolerate 'Income', 'e xpense', 'expense ')
+      const rawType = (nd.type || '').toString().toLowerCase().replace(/[^a-z]/g, '');
+      const type = rawType.startsWith('inc') ? 'income' : 'expense';
+
+      // Clean colorVar (tolerate '--chart- 1', '--cha rt-1')
+      let colorVar = nd.colorVar || nd.color;
+      if (colorVar) {
+        colorVar = colorVar.toString().replace(/\s+/g, '');
+        if (!colorVar.startsWith('--') && colorVar.startsWith('chart-')) colorVar = '--' + colorVar;
+      } else {
+        colorVar = type === 'income' ? `--chart-1` : `--chart-4`;
+      }
+
+      return {
+        key: cleanKey,
+        label: label,
+        value: typeof nd.value === 'number' ? nd.value : undefined,
+        type: type,
+        parent: parent,
+        colorVar: colorVar,
+        slider: nd.slider
+      };
+    });
+
+    const rawHero = (data.heroMode || 'savings').toString().toLowerCase().replace(/[^a-z_]/g, '');
+    const heroMode = rawHero.includes('exp') ? 'total_expense' : (rawHero.includes('inc') ? 'total_income' : 'savings');
+
+    return {
+      nodes: nodes,
+      labels: { ...defaultLabels, ...(data.labels || {}) },
+      heroMode: heroMode
+    };
+  }
+
+  const normalizedSankey = normalizeSankeyData(injectedData);
+  const nodeDataList = normalizedSankey.nodes;
+  const labels = normalizedSankey.labels;
+  const heroMode = normalizedSankey.heroMode; // 'savings' | 'total_expense' | 'total_income'
+
+  // ===================================================================
+  // HELPERS
+  // ===================================================================
+  const colorCache = {};
+  function getComputedColor(varName) {
+    if (!colorCache[varName]) {
+      colorCache[varName] = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    }
+    return colorCache[varName];
+  }
+
+  function getCurrencySymbol() {
+    if (labels.currencySymbol) return labels.currencySymbol;
+    return '';
+  }
+
+  function fmt(n) {
+    const sym = getCurrencySymbol();
+    const loc = labels.currencyLocale || 'en-US';
+    if (n >= 0) return sym + n.toLocaleString(loc);
+    return '-' + sym + Math.abs(n).toLocaleString(loc);
+  }
+
+  function updateSliderProgress(el) {
+    const min = parseFloat(el.min) || 0;
+    const max = parseFloat(el.max) || 100;
+    const val = parseFloat(el.value) || 0;
+    const pct = (val - min) / (max - min) * 100;
+    el.style.setProperty('--progress', pct + '%');
+  }
+
+  // ===================================================================
+  // TREE MODEL
+  // ===================================================================
+  let nodeMap = {};
+  let incomeRoots = [];
+  let expenseRoots = [];
+  let balanceNode = null;
+  let allVisibleNodes = [];
+  let totalIn = 0, totalEx = 0, bal = 0;
+
+  // SVG layout constants
+  let SVG_W = 820;
+  let SVG_H = 460;
+  let PAD = { top: 10, bottom: 12, left: 100, right: 100 };
+  let NODE_W = 24;
+  const NODE_GAP = 16;
+  const FLOW_OPACITY = 0.38;
+
+  function buildTree() {
+    nodeMap = {};
+    incomeRoots = [];
+    expenseRoots = [];
+
+    nodeDataList.forEach(nd => {
+      let val = nd.value;
+      if (val === undefined && nd.parent) {
+        if (nd.slider) {
+          val = Math.round((nd.slider.min + nd.slider.max) / 2 / (nd.slider.step || 1)) * (nd.slider.step || 1);
+        } else {
+          val = 0;
+        }
+      }
+      nodeMap[nd.key] = {
+        ...nd, value: val, children: [], computedValue: undefined,
+        depth: 0, stage: 0, x: 0, y: 0, height: 0,
+      };
+    });
+
+    nodeDataList.forEach(nd => {
+      const node = nodeMap[nd.key];
+      if (nd.parent && nodeMap[nd.parent]) {
+        nodeMap[nd.parent].children.push(node);
+      } else if (!nd.parent) {
+        (nd.type === 'income' ? incomeRoots : expenseRoots).push(node);
+      }
+    });
+
+    // Collapse single-child root nodes to eliminate redundant 1:1 stages.
+    // When a root (e.g. total_income) has exactly one child (e.g. primary_income),
+    // the child is visually redundant. Merge: adopt child's label, slider, value,
+    // and colorVar onto the root, then remove the child.
+    function collapseIfSingleChild(root) {
+      if (root.children.length !== 1) return;
+      const child = root.children[0];
+      root.label = child.label;
+      if (child.slider) root.slider = child.slider;
+      if (child.colorVar) root.colorVar = child.colorVar;
+      if (child.value !== undefined) root.value = child.value;
+      // Re-map so slider handlers find the root by the child's old key
+      nodeMap[child.key] = root;
+      root.children = child.children;
+      // Re-parent grandchildren to the root
+      root.children.forEach(gc => { gc.parent = root.key; });
+      // Flag if collapse reduced root to a leaf (no grandchildren)
+      if (root.children.length === 0) root._collapsedToLeaf = true;
+    }
+    incomeRoots.forEach(collapseIfSingleChild);
+    expenseRoots.forEach(collapseIfSingleChild);
+
+    // Auto-generated balance node (savings / deficit) — only in savings mode
+    if (heroMode === 'savings') {
+      balanceNode = {
+        key: '__balance', label: 'Savings', value: 0, type: 'income',
+        parent: null, children: [], computedValue: 0, isAuto: true,
+        depth: 0, stage: 0, x: 0, y: 0, height: 0,
+        colorVar: '--positive',
+      };
+      nodeMap['__balance'] = balanceNode;
+    }
+  }
+
+  function computeValues() {
+    function walk(node) {
+      if (node.children.length === 0) {
+        node.computedValue = node.value || 0;
+        return node.computedValue;
+      }
+      node.computedValue = node.children.reduce((s, c) => s + walk(c), 0);
+      return node.computedValue;
+    }
+    incomeRoots.forEach(walk);
+    expenseRoots.forEach(walk);
+
+    totalIn = incomeRoots.reduce((s, r) => s + r.computedValue, 0);
+    totalEx = expenseRoots.reduce((s, r) => s + r.computedValue, 0);
+    bal = totalIn - totalEx;
+
+    if (balanceNode) {
+      balanceNode.computedValue = Math.abs(bal);
+      balanceNode.value = Math.abs(bal);
+      balanceNode.label = bal >= 0 ? (labels.savingsLabel || 'Savings') : (labels.deficitLabel || 'Deficit');
+      balanceNode.type = bal >= 0 ? 'income' : 'expense';
+      balanceNode.colorVar = bal >= 0 ? '--positive' : '--negative';
+    }
+  }
+
+  function assignStages() {
+    let maxID = 0;
+    function findMax(node, d) {
+      if (d > maxID) maxID = d;
+      node.children.forEach(c => findMax(c, d + 1));
+    }
+    incomeRoots.forEach(r => findMax(r, 0));
+
+    function setIncStage(node, d) {
+      node.stage = maxID - d;
+      node.children.forEach(c => setIncStage(c, d + 1));
+    }
+    incomeRoots.forEach(r => setIncStage(r, 0));
+
+    function setExpStage(node, d) {
+      node.stage = maxID + 1 + d;
+      node.children.forEach(c => setExpStage(c, d + 1));
+    }
+    expenseRoots.forEach(r => setExpStage(r, 0));
+
+    if (balanceNode) {
+      balanceNode.stage = (bal >= 0) ? maxID + 1 : 0;
+    }
+  }
+
+  function collectVisible() {
+    allVisibleNodes = [];
+    function collect(node) {
+      allVisibleNodes.push(node);
+      node.children.forEach(collect);
+    }
+    incomeRoots.forEach(r => {
+      // After collapse, a childless income root is a pure pass-through to expenses.
+      // Skip it to avoid a redundant 1:1 column (keep for savings mode where
+      // the income bar is needed for the balance flow).
+      if (r._collapsedToLeaf && expenseRoots.length > 0 && heroMode !== 'savings') return;
+      collect(r);
+    });
+    expenseRoots.forEach(collect);
+    if (balanceNode && balanceNode.computedValue > 0) allVisibleNodes.push(balanceNode);
+  }
+
+  // ===================================================================
+  // CONNECTIONS
+  // ===================================================================
+  function getConnections() {
+    const conns = [];
+
+    function addEdges(node) {
+      node.children.forEach(child => {
+        const src = child.stage < node.stage ? child : node;
+        const tgt = child.stage < node.stage ? node : child;
+        conns.push({
+          source: src, target: tgt,
+          value: child.computedValue || child.value || 0,
+        });
+        addEdges(child);
+      });
+    }
+    incomeRoots.forEach(addEdges);
+    expenseRoots.forEach(addEdges);
+
+    // Center connections: income root -> expense root(s) + balance
+    incomeRoots.forEach(ir => {
+      // Skip connections from hidden (collapsed/childless) income roots
+      if (!allVisibleNodes.includes(ir)) return;
+      expenseRoots.forEach(er => {
+        const flowVal = bal >= 0 ? er.computedValue : ir.computedValue;
+        if (flowVal > 0) {
+          conns.push({ source: ir, target: er, value: flowVal });
+        }
+      });
+      if (balanceNode && balanceNode.computedValue > 0) {
+        if (bal >= 0) {
+          conns.push({ source: ir, target: balanceNode, value: balanceNode.computedValue });
+        }
+      }
+    });
+    if (balanceNode && balanceNode.computedValue > 0 && bal < 0) {
+      expenseRoots.forEach(er => {
+        conns.push({ source: balanceNode, target: er, value: balanceNode.computedValue });
+      });
+    }
+
+    return conns.filter(c => c.value > 0);
+  }
+
+  // ===================================================================
+  // LAYOUT
+  // ===================================================================
+  function computeLayout() {
+    // Group visible nodes by stage
+    const stages = {};
+    allVisibleNodes.forEach(n => {
+      if (!stages[n.stage]) stages[n.stage] = [];
+      stages[n.stage].push(n);
+    });
+
+    const stageKeys = Object.keys(stages).map(Number).sort((a, b) => a - b);
+    if (stageKeys.length === 0) return;
+
+    // Dynamic SVG height that provides generous, prominent node heights
+    const maxNodesInStage = Math.max(...stageKeys.map(k => stages[k].length));
+    const targetAvailH = Math.max(180, maxNodesInStage * 55 + (maxNodesInStage - 1) * NODE_GAP);
+    SVG_H = PAD.top + PAD.bottom + targetAvailH;
+
+    // Find max total value across all stages for scaling
+    let maxTotal = 0;
+    stageKeys.forEach(sk => {
+      const total = stages[sk].reduce((s, n) => s + (n.computedValue || 0), 0);
+      maxTotal = Math.max(maxTotal, total);
+    });
+    if (maxTotal === 0) return;
+
+    const availH = SVG_H - PAD.top - PAD.bottom;
+    const scaleH = (availH - (maxNodesInStage - 1) * NODE_GAP) / maxTotal;
+
+    const availW = SVG_W - PAD.left - PAD.right - NODE_W;
+    const stageSpacing = stageKeys.length > 1 ? availW / (stageKeys.length - 1) : 0;
+
+    stageKeys.forEach((sk, i) => {
+      const nodes = stages[sk];
+      const x = PAD.left + i * stageSpacing;
+
+      const totalH = nodes.reduce((s, n) => s + (n.computedValue || 0) * scaleH, 0);
+      const gaps = (nodes.length - 1) * NODE_GAP;
+      let y = PAD.top + (availH - totalH - gaps) / 2;
+
+      nodes.forEach(n => {
+        n.x = x;
+        n.y = y;
+        n.height = Math.max(2, (n.computedValue || 0) * scaleH);
+        n.width = NODE_W;
+        y += n.height + NODE_GAP;
+      });
+    });
+  }
+
+  function computeFlowPositions(conns) {
+    // Reset offsets
+    allVisibleNodes.forEach(n => { n.sourceOffset = 0; n.targetOffset = 0; });
+
+    // Sort connections for cleaner layout:
+    // Group by source, then sort by target Y position
+    conns.sort((a, b) => {
+      if (a.source.key !== b.source.key) return a.source.y - b.source.y;
+      return a.target.y - b.target.y;
+    });
+
+    conns.forEach(c => {
+      const srcNode = c.source;
+      const tgtNode = c.target;
+
+      // Scale flow height to node heights
+      const srcTotal = srcNode.computedValue || 1;
+      const tgtTotal = tgtNode.computedValue || 1;
+
+      const srcFlowH = (c.value / srcTotal) * srcNode.height;
+      const tgtFlowH = (c.value / tgtTotal) * tgtNode.height;
+
+      c.sy = srcNode.y + srcNode.sourceOffset;
+      c.sh = srcFlowH;
+      srcNode.sourceOffset += srcFlowH;
+
+      c.ty = tgtNode.y + tgtNode.targetOffset;
+      c.th = tgtFlowH;
+      tgtNode.targetOffset += tgtFlowH;
+    });
+  }
+
+  // ===================================================================
+  // SVG RENDERING
+  // ===================================================================
+  function getNodeColor(node) {
+    if (node.colorVar) return getComputedColor(node.colorVar);
+    if (node.type === 'income') return getComputedColor('--chart-1');
+    if (node.type === 'expense') return getComputedColor('--chart-4');
+    return getComputedColor('--outline');
+  }
+
+  function getFlowColor(conn) {
+    // Use target node color for the flow
+    return getNodeColor(conn.target);
+  }
+
+  function renderChart() {
+    const isMobile = window.innerWidth <= 600;
+    SVG_W = isMobile ? 420 : 820;
+    PAD = isMobile
+      ? { top: 16, bottom: 18, left: 85, right: 85 }
+      : { top: 16, bottom: 18, left: 100, right: 100 };
+    NODE_W = isMobile ? 18 : 24;
+
+    collectVisible();
+    computeLayout();
+    const conns = getConnections();
+    computeFlowPositions(conns);
+
+    const svg = document.getElementById('sankeyChart');
+    svg.setAttribute('viewBox', `0 0 ${SVG_W} ${SVG_H}`);
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.style.height = '';
+    svg.style.minHeight = '';
+    svg.replaceChildren();
+
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+
+    // 1. Draw flows (behind nodes)
+    conns.forEach(c => {
+      if (c.sh < 0.5 && c.th < 0.5) return;
+      const sx = c.source.x + c.source.width;
+      const tx = c.target.x;
+      const midX = (sx + tx) / 2;
+      const color = getFlowColor(c);
+
+      const d = `M ${sx},${c.sy}
+        C ${midX},${c.sy} ${midX},${c.ty} ${tx},${c.ty}
+        L ${tx},${c.ty + c.th}
+        C ${midX},${c.ty + c.th} ${midX},${c.sy + c.sh} ${sx},${c.sy + c.sh}
+        Z`;
+      const flowLabel = `${c.source.label} → ${c.target.label}`;
+      const pathEl = document.createElementNS(SVG_NS, 'path');
+      pathEl.setAttribute('d', d);
+      pathEl.setAttribute('fill', color);
+      pathEl.setAttribute('opacity', String(FLOW_OPACITY));
+      pathEl.setAttribute('data-label', flowLabel);
+      pathEl.setAttribute('data-value', String(c.value));
+      svg.appendChild(pathEl);
+    });
+
+    // 2. Draw nodes
+    allVisibleNodes.forEach(n => {
+      if (n.height < 0.5) return;
+      const color = getNodeColor(n);
+      const val = n.computedValue || n.value || 0;
+      const rectEl = document.createElementNS(SVG_NS, 'rect');
+      rectEl.setAttribute('x', String(n.x));
+      rectEl.setAttribute('y', String(n.y));
+      rectEl.setAttribute('width', String(n.width));
+      rectEl.setAttribute('height', String(n.height));
+      rectEl.setAttribute('rx', '4');
+      rectEl.setAttribute('ry', '4');
+      rectEl.setAttribute('fill', color);
+      rectEl.setAttribute('data-label', String(n.label || ''));
+      rectEl.setAttribute('data-value', String(val));
+      svg.appendChild(rectEl);
+    });
+
+    // 3. Draw labels
+    const stageKeys = [...new Set(allVisibleNodes.map(n => n.stage))].sort((a, b) => a - b);
+    const minStage = stageKeys[0];
+    const maxStage = stageKeys[stageKeys.length - 1];
+
+    const SIDE_LABEL_W = PAD.left - 14;   // fixed width for left labels
+    const RIGHT_LABEL_W = PAD.right - 14; // fixed width for right labels
+    const LABEL_STYLE = `font-family:var(--ff-sans);font-size:${isMobile ? 15 : 14}px;font-weight:500;line-height:1.25;overflow-wrap:normal;word-wrap:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;`;
+    const SUBLABEL_STYLE = `font-family:var(--ff-sans);font-size:${isMobile ? 13 : 12}px;line-height:1.25;color:var(--on-surface-de-emphasis);overflow-wrap:normal;word-wrap:normal;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;`;
+
+    const leftLabels = [];
+    const rightLabels = [];
+
+    allVisibleNodes.forEach(n => {
+      if (n.height < 0.5) return;
+      const cy = n.y + n.height / 2;
+      const isLeft = n.stage === minStage;
+      const isRight = n.stage === maxStage;
+
+      if (isLeft) {
+        leftLabels.push({ n, cy, foH: n.sublabel ? 50 : 36 });
+      } else if (isRight) {
+        rightLabels.push({ n, cy, foH: n.sublabel ? 50 : 36 });
+      } else {
+        const textEl = document.createElementNS(SVG_NS, 'text');
+        textEl.setAttribute('x', String(n.x + n.width / 2));
+        textEl.setAttribute('y', String(n.isAuto ? (n.y + n.height + 20) : (n.y - 11)));
+        textEl.setAttribute('text-anchor', 'middle');
+        textEl.setAttribute('class', 'node-label');
+        textEl.setAttribute('font-size', '14');
+        textEl.setAttribute('font-weight', '500');
+        textEl.textContent = String(n.label || '');
+        svg.appendChild(textEl);
+      }
+    });
+
+    // De-overlap side labels: push down to resolve collisions while keeping
+    // labels aligned with their bars (no re-centering).
+    function deOverlapLabels(labelArr) {
+      // Always initialize foY centered on the node for every label
+      labelArr.forEach(l => { l.foY = l.cy - l.foH / 2; });
+      if (labelArr.length < 2) return;
+      labelArr.sort((a, b) => a.cy - b.cy);
+      const GAP = 2;
+      for (let i = 1; i < labelArr.length; i++) {
+        const prevBottom = labelArr[i - 1].foY + labelArr[i - 1].foH + GAP;
+        if (labelArr[i].foY < prevBottom) {
+          labelArr[i].foY = prevBottom;
+        }
+      }
+    }
+
+    deOverlapLabels(leftLabels);
+    deOverlapLabels(rightLabels);
+
+    function appendSideForeignObject(foX, foY, foW, foH, n) {
+      const fo = document.createElementNS(SVG_NS, 'foreignObject');
+      fo.setAttribute('x', String(foX));
+      fo.setAttribute('y', String(foY));
+      fo.setAttribute('width', String(foW));
+      fo.setAttribute('height', String(foH));
+
+      const mainDiv = document.createElement('div');
+      mainDiv.setAttribute('style', `${LABEL_STYLE}text-align:left;color:var(--on-surface-default);`);
+      mainDiv.textContent = String(n.label || '');
+      fo.appendChild(mainDiv);
+
+      if (n.sublabel) {
+        const subDiv = document.createElement('div');
+        subDiv.setAttribute('style', `${SUBLABEL_STYLE}text-align:left;`);
+        subDiv.textContent = String(n.sublabel);
+        fo.appendChild(subDiv);
+      }
+      svg.appendChild(fo);
+    }
+
+    // Emit left labels
+    leftLabels.forEach(({ n, foH, foY }) => {
+      const foX = n.x - 10 - SIDE_LABEL_W;
+      appendSideForeignObject(foX, foY, SIDE_LABEL_W, foH, n);
+    });
+
+    // Emit right labels
+    rightLabels.forEach(({ n, foH, foY }) => {
+      const foX = n.x + n.width + 10;
+      appendSideForeignObject(foX, foY, RIGHT_LABEL_W, foH, n);
+    });
+
+    // 4. Attach tooltips
+    const tooltip = document.getElementById('chartTooltip');
+    svg.onmousemove = (e) => {
+      const target = e.target;
+      if (target.hasAttribute('data-label')) {
+        const lbl = target.getAttribute('data-label') || '';
+        const v = fmt(Number(target.getAttribute('data-value')));
+        tooltip.replaceChildren();
+        tooltip.append(document.createTextNode(`${lbl}: `));
+        const valSpan = document.createElement('span');
+        valSpan.className = 'tooltip-value';
+        valSpan.textContent = v;
+        tooltip.appendChild(valSpan);
+        tooltip.style.opacity = 1;
+        const ttWidth = tooltip.offsetWidth || 180;
+        let left = e.pageX + 15;
+        if (e.clientX + 15 + ttWidth > window.innerWidth - 12) {
+          left = e.pageX - ttWidth - 15;
+        }
+        tooltip.style.left = Math.max(8, left) + 'px';
+        tooltip.style.top = (e.pageY + 15) + 'px';
+      } else {
+        tooltip.style.opacity = 0;
+      }
+    };
+    svg.onmouseleave = () => {
+      tooltip.style.opacity = 0;
+    };
+  }
+
+  // ===================================================================
+  // SUMMARY UPDATE
+  // ===================================================================
+  function updateSummary() {
+    const totalIn = incomeRoots.reduce((s, r) => s + r.computedValue, 0);
+    const totalEx = expenseRoots.reduce((s, r) => s + r.computedValue, 0);
+    const balance = totalIn - totalEx;
+    const rate = totalIn > 0 ? (balance / totalIn) * 100 : 0;
+
+    const heroEl = document.getElementById('heroValue');
+    // Hero value depends on heroMode
+    if (heroMode === 'total_expense') {
+      heroEl.textContent = fmt(totalEx);
+      heroEl.className = 'summary-val center-val';
+    } else if (heroMode === 'total_income') {
+      heroEl.textContent = fmt(totalIn);
+      heroEl.className = 'summary-val center-val positive';
+    } else {
+      heroEl.textContent = fmt(balance);
+      heroEl.className = 'summary-val center-val ' + (balance >= 0 ? 'positive' : 'negative');
+    }
+
+    document.getElementById('expenseValue').textContent = fmt(totalEx);
+
+    // Savings rate only in savings mode
+    if (heroMode === 'savings') {
+      const rateEl = document.getElementById('savingsRateValue');
+      rateEl.textContent = Math.max(0, Math.round(rate)) + '%';
+      rateEl.className = 'summary-val side-val ' + (balance >= 0 ? 'positive' : 'negative');
+    }
+  }
+
+  // ===================================================================
+  // SLIDERS
+  // ===================================================================
+  function renderSliders() {
+    const container = document.getElementById('slidersContainer');
+    container.replaceChildren();
+
+    // Group slider nodes by type
+    const incomeSliders = [];
+    const expenseSliders = [];
+    function collectSliders(node) {
+      if (node.slider) {
+        (node.type === 'income' ? incomeSliders : expenseSliders).push(node);
+      }
+      node.children.forEach(collectSliders);
+    }
+    incomeRoots.forEach(collectSliders);
+    expenseRoots.forEach(collectSliders);
+
+    function createGroup(title, nodes, startOpen) {
+      if (nodes.length === 0) return;
+      const catDiv = document.createElement('div');
+      catDiv.className = 'category ' + (startOpen ? 'open' : '');
+
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'category-header';
+      headerDiv.addEventListener('click', () => toggleCategory(headerDiv));
+
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'category-title';
+      titleSpan.textContent = title;
+
+      const chevSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      chevSvg.setAttribute('class', 'category-chevron');
+      chevSvg.setAttribute('viewBox', '0 0 24 24');
+      chevSvg.setAttribute('fill', 'none');
+      chevSvg.setAttribute('stroke', 'currentColor');
+      chevSvg.setAttribute('stroke-width', '2');
+      const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+      poly.setAttribute('points', '6 9 12 15 18 9');
+      chevSvg.appendChild(poly);
+
+      headerDiv.append(titleSpan, chevSvg);
+
+      const bodyDiv = document.createElement('div');
+      bodyDiv.className = 'category-body';
+      const gridDiv = document.createElement('div');
+      gridDiv.className = 'slider-grid';
+
+      nodes.forEach(n => {
+        const s = n.slider;
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'slider-row';
+
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'slider-label';
+        labelDiv.title = String(n.label || '');
+
+        const dotSpan = document.createElement('span');
+        dotSpan.className = 'color-dot';
+        const cVar = /^--[a-zA-Z0-9_-]+$/.test(String(n.colorVar || ''))
+          ? n.colorVar
+          : (n.type === 'income' ? '--chart-1' : (n.type === 'expense' ? '--chart-4' : '--outline'));
+        dotSpan.style.backgroundColor = `var(${cVar})`;
+
+        labelDiv.append(dotSpan, document.createTextNode(String(n.label || '')));
+
+        const ctrlDiv = document.createElement('div');
+        ctrlDiv.className = 'slider-control';
+
+        const val = n.value || n.computedValue || 0;
+        const rangeInput = document.createElement('input');
+        rangeInput.type = 'range';
+        rangeInput.min = String(s.min);
+        rangeInput.max = String(s.max);
+        rangeInput.step = String(s.step);
+        rangeInput.value = String(val);
+        rangeInput.dataset.node = n.key;
+        rangeInput.dataset.origMax = String(s.max);
+        rangeInput.addEventListener('input', () => handleSlider(rangeInput));
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = 'slider-value';
+        textInput.dataset.display = n.key;
+        textInput.value = fmt(val);
+        textInput.setAttribute('inputmode', 'numeric');
+        textInput.addEventListener('input', () => handleInput(textInput));
+        textInput.addEventListener('focus', () => handleInputFocus(textInput));
+        textInput.addEventListener('blur', () => handleInputBlur(textInput));
+        textInput.addEventListener('keydown', (ev) => handleInputKeydown(ev, textInput));
+
+        ctrlDiv.append(rangeInput, textInput);
+        rowDiv.append(labelDiv, ctrlDiv);
+        gridDiv.appendChild(rowDiv);
+      });
+
+      bodyDiv.appendChild(gridDiv);
+      catDiv.append(headerDiv, bodyDiv);
+      container.appendChild(catDiv);
+    }
+
+    createGroup('Income sources', incomeSliders, true);
+    createGroup('Expense categories', expenseSliders, true);
+
+    // Initialize slider progress
+    document.querySelectorAll('input[type="range"]').forEach(updateSliderProgress);
+  }
+
+  function toggleCategory(header) {
+    header.closest('.category').classList.toggle('open');
+  }
+
+  function handleSlider(el) {
+    const key = el.dataset.node;
+    const val = parseInt(el.value) || 0;
+    updateSliderProgress(el);
+
+    // Update display
+    const disp = document.querySelector(`[data-display="${key}"]`);
+    if (disp) {
+      if (disp.tagName === 'INPUT') {
+        if (document.activeElement !== disp) disp.value = fmt(val);
+      } else {
+        disp.textContent = fmt(val);
+      }
+    }
+
+    // Update node value
+    const node = nodeMap[key];
+    if (node) node.value = val;
+
+    // Recompute everything
+    recalculate(true);
+  }
+
+  function handleInput(el) {
+    const key = el.dataset.display || el.dataset.node;
+    const raw = el.value.replace(/[^0-9]/g, '');
+    let val = parseInt(raw);
+    if (isNaN(val)) val = 0;
+
+    const slider = document.querySelector(`input[type="range"][data-node="${key}"]`);
+    if (slider) {
+      const min = parseInt(slider.min) || 0;
+      const origMax = parseInt(slider.dataset.origMax) || parseInt(slider.max) || 100000;
+      if (val > origMax) {
+        slider.max = Math.max(origMax, Math.ceil(val * 1.25 / 100) * 100);
+      } else {
+        slider.max = origMax;
+      }
+      slider.value = Math.max(min, val);
+      updateSliderProgress(slider);
+    }
+
+    const node = nodeMap[key];
+    if (node) node.value = val;
+
+    recalculate(true);
+  }
+
+  function handleInputFocus(el) {
+    const key = el.dataset.display || el.dataset.node;
+    const node = nodeMap[key];
+    const val = node ? (node.value !== undefined ? node.value : (node.computedValue || 0)) : (parseInt(el.value.replace(/[^0-9]/g, '')) || 0);
+    el.value = val;
+    setTimeout(() => el.select(), 0);
+  }
+
+  function handleInputBlur(el) {
+    const key = el.dataset.display || el.dataset.node;
+    const node = nodeMap[key];
+    const slider = document.querySelector(`input[type="range"][data-node="${key}"]`);
+    const raw = el.value.replace(/[^0-9]/g, '');
+    let val = parseInt(raw);
+    if (isNaN(val)) val = 0;
+    if (slider) {
+      const min = parseInt(slider.min) || 0;
+      const origMax = parseInt(slider.dataset.origMax) || parseInt(slider.max) || 100000;
+      if (val > origMax) {
+        slider.max = Math.max(origMax, Math.ceil(val * 1.25 / 100) * 100);
+      } else {
+        slider.max = origMax;
+      }
+      val = Math.max(min, val);
+      slider.value = val;
+      updateSliderProgress(slider);
+    }
+    if (node) node.value = val;
+    el.value = fmt(val);
+    recalculate(true);
+  }
+
+  function handleInputKeydown(e, el) {
+    if (e.key === 'Enter') {
+      el.blur();
+    }
+  }
+
+  // ===================================================================
+  // RECALCULATE
+  // ===================================================================
+  function recalculate(userInitiated = false) {
+    computeValues();
+    assignStages();
+    renderChart();
+    updateSummary();
+    if (userInitiated) {
+      broadcastState();
+    }
+
+    // Broadcast height immediately and after paint to prevent iframe resize delay in production
+    const sendResize = () => {
+      window.parent.postMessage({
+        type: 'widget-resize',
+        height: document.body.scrollHeight
+      }, '*');
+    };
+    sendResize();
+    requestAnimationFrame(sendResize);
+  }
+
+  // ===================================================================
+  // STATE MANAGEMENT
+  // ===================================================================
+  function broadcastState() {
+    const totalIn = incomeRoots.reduce((s, r) => s + r.computedValue, 0);
+    const totalEx = expenseRoots.reduce((s, r) => s + r.computedValue, 0);
+    const state = {
+      totalIncome: totalIn,
+      totalExpenses: totalEx,
+      balance: totalIn - totalEx,
+      nodes: {},
+    };
+    Object.values(nodeMap).forEach(n => {
+      if (n.key === '__balance') return;
+      state.nodes[n.key] = n.computedValue || n.value || 0;
+    });
+
+    window.parent.postMessage({
+      type: 'WIDGET_STATE_UPDATE',
+      widgetType: 'finance-sankey',
+      payload: JSON.stringify(state)
+    }, '*');
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.data?.type === 'RESTORE_STATE') {
+      let raw = event.data.state !== undefined ? event.data.state : (event.data.payload !== undefined ? event.data.payload : event.data.stateJson);
+      if (!raw) return;
+      let state = raw;
+      if (typeof raw === 'string') {
+        try { state = JSON.parse(raw); } catch (e) { return; }
+      }
+      if (state.custom) state = state.custom;
+      // Restore slider values
+      document.querySelectorAll('input[type="range"][data-node]').forEach(slider => {
+        const key = slider.dataset.node;
+        const val = (state.nodes && state.nodes[key] !== undefined) ? state.nodes[key] : state[key];
+        if (val !== undefined && typeof val === 'number') {
+          const origMax = parseInt(slider.dataset.origMax) || parseInt(slider.max) || 100000;
+          if (val > origMax) {
+            slider.max = Math.max(origMax, Math.ceil(val * 1.25 / 100) * 100);
+          }
+          slider.value = val;
+          updateSliderProgress(slider);
+          const disp = document.querySelector(`[data-display="${key}"]`);
+          if (disp) {
+            if (disp.tagName === 'INPUT') {
+              disp.value = fmt(val);
+            } else {
+              disp.textContent = fmt(val);
+            }
+          }
+          if (nodeMap[key]) nodeMap[key].value = val;
+        }
+      });
+      recalculate();
+    }
+  });
+
+  // ===================================================================
+  // LABELS
+  // ===================================================================
+  function applyLabels() {
+    const map = {
+      title: 'widgetTitle',
+      subtitle: 'widgetSubtitle',
+      heroSubtitle: 'heroSubtitle',
+      incomeLabel: 'incomeLabel',
+      expenseLabel: 'expenseLabel',
+      slidersTitle: 'slidersTitle',
+      footerNote: 'footerNote',
+    };
+    for (const [key, id] of Object.entries(map)) {
+      const el = document.getElementById(id);
+      if (el && labels[key]) el.textContent = labels[key];
+    }
+  }
+
+  // ===================================================================
+  // DARK MODE LISTENER
+  // ===================================================================
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    for (const k in colorCache) delete colorCache[k];
+    renderChart();
+  });
+
+  window.addEventListener('resize', () => {
+    renderChart();
+  });
+
+  // ===================================================================
+  // AUTO-RESIZE
+  // ===================================================================
+  const resizeObserver = new ResizeObserver(() => {
+    window.parent.postMessage({
+      type: 'widget-resize',
+      height: document.body.scrollHeight
+    }, '*');
+  });
+  resizeObserver.observe(document.body);
+
+  // ===================================================================
+  // INIT
+  // ===================================================================
+  buildTree();
+  applyLabels();
+
+  // Hide savings rate column when not in savings mode
+  if (heroMode !== 'savings') {
+    const summarySection = document.querySelector('.summary-section');
+    const items = summarySection.querySelectorAll('.summary-item');
+    const dividers = summarySection.querySelectorAll('.summary-divider');
+    // Hide savings rate (last item + last divider)
+    if (items.length >= 3 && dividers.length >= 2) {
+      items[items.length - 1].style.display = 'none';
+      dividers[dividers.length - 1].style.display = 'none';
+    }
+    // Hide expense column (first item + first divider) — hero already shows the total
+    if (items.length >= 1 && dividers.length >= 1) {
+      items[0].style.display = 'none';
+      dividers[0].style.display = 'none';
+    }
+  }
+
+  computeValues();
+  assignStages();
+  renderSliders();
+
+  // Hide slider section entirely if no sliders were rendered
+  if (document.getElementById('slidersContainer').children.length === 0) {
+    document.querySelector('.sliders-section').style.display = 'none';
+    document.querySelector('.footer-note').style.display = 'none';
+  }
+
+  recalculate();
+</script>
+</body>
+</html>
